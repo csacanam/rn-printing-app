@@ -13,13 +13,36 @@ import {
   Alert
 } from 'react-native';
 import qz from 'qz-tray';
+//import sha from 'sha';
+//import './shim.js'
 
 export default class PrintingApp extends Component {
 
-  componentWillMount(){
-      qz.api.setPromiseType(function promise(resolver) { return new Promise(resolver); });
-    qz.websocket.connect().then(function() {
-     Alert.alert("Connected!");
+  componentWillMount(){  
+    qz.api.setPromiseType(function promise(resolver) { 
+      return new Promise(resolver); 
+    });
+    
+    var createHash = require('sha.js');
+
+    qz.api.setSha256Type(function(data){
+      console.log('a');
+      //var crypto = require('crypto')
+      console.log('b');
+      var abc = createHash('sha1').update('abc').digest('hex')
+      console.log(abc)
+      return createHash('sha256').update(data).digest('hex');
+    });
+
+    var options = {};
+    options.host = "192.168.1.53";
+
+    qz.websocket.connect(options).then(function() {
+      Alert.alert("Connected!");
+      findPrinters();
+      sendPrint();
+    }).catch(function(e) {
+      Alert.alert("Problem");
     });
   }
 
@@ -39,6 +62,28 @@ export default class PrintingApp extends Component {
       </View>
     );
   }
+}
+
+function findPrinters() {
+  qz.printers.find().then(function(data) {
+    console.log(data);
+    
+     /*var list = '';
+     for(var i = 0; i < data.length; i++) {
+        //list += "&nbsp; " + data[i] + "<br/>";
+        console.log("&nbsp; " + data[i] + "<br/>");
+    }*/
+    //displayMessage("<strong>Available printers:</strong><br/>" + list);
+ }).catch(function(e) { console.error(e); });
+}
+
+function sendPrint() {
+  var config = qz.configs.create("HP Deskjet 2050 J510 series");               // Exact printer name from OS
+  var data = ['^XA^FO50,50^ADN,36,20^FDRAW ZPL EXAMPLE^FS^XZ'];   // Raw commands (ZPL provided)
+
+  qz.print(config, data).then(function() {
+    alert("Sent data to printer");
+  });
 }
 
 const styles = StyleSheet.create({
